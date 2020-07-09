@@ -1,0 +1,29 @@
+---
+title: "Initial exploration of scraping capabilities in HMDD"
+author: "João Vitor"
+date: "09/07/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(polite)
+library(rvest)
+```
+
+## Seeing if HMDD has any rate-limiting or scraping policy w/ { polite }
+
+```{r}
+session <- bow("http://www.cuilab.cn/hmdd3app/causality/hsa-mir-101-1_a3/", force = TRUE)
+result <- scrape(session, query=list(t="semi-soft")) %>%
+  html_table()
+```
+
+```{r}
+session_net <- bow("http://www.cuilab.cn/hmdd3app/browse_net/Multiple%20Myeloma_n2/", force = TRUE)
+
+result_net <- scrape(session_net) %>% 
+  html_node(xpath = "/html/body/p/b/span[2]/a") %>% 
+  html_attr("href")
+```
+
