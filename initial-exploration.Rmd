@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(magrittr)
 ```
 
 ## Scraping HMDD
@@ -14,13 +15,23 @@ knitr::opts_chunk$set(echo = TRUE)
 Refactor calls/url building that are common to both functions, get info from diseases too.
 
 ```{r}
+get_href <- function(url, obj_xpath) {
+  xml2::read_html(url) %>% 
+    rvest::html_node(xpath = obj_xpath) %>% 
+    rvest::html_attr("href")
+}
+
+make_hmdd_url <- function(info_type, id, extra_id) {
+  sprintf("http://www.cuilab.cn/hmdd3app/%s/%s_%s/", info_type, id, extra_id)
+}
+```
+
+```{r}
 get_hmdd_causality <- function(mirna) {
   
-  url <- sprintf("http://www.cuilab.cn/hmdd3app/causality/%s_a3/", mirna)
-  
-  result <- xml2::read_html(url) %>% 
-    rvest::html_node(xpath = '//*[@id="browsedownload"]') %>% 
-    rvest::html_attr("href")
+  url <- make_hmdd_url("causality", mirna, "a3")
+
+  result <- get_href(url, '//*[@id="browsedownload"]')
 
   info <- paste0("http://www.cuilab.cn", result) %>% 
     readLines()
@@ -32,13 +43,11 @@ get_hmdd_causality <- function(mirna) {
 ```
 
 ```{r}
-get_mirna_target_net <- function(mirna) {
-
-  url <- sprintf("http://www.cuilab.cn/hmdd3app/browse_net/%s_n1/", mirna)
+get_hmdd_net <- function(mirna) {
   
-  result <- xml2::read_html(url) %>% 
-    rvest::html_node(xpath = '/html/body/p/b/span[2]/a') %>% 
-    rvest::html_attr("href")
+  url <- make_hmdd_url("browse_net", mirna, "n1")
+  
+  result <- get_href(url, '/html/body/p/b/span[2]/a')
 
   info <- paste0("http://www.cuilab.cn", result) %>% 
     readLines() %>% 
@@ -51,6 +60,6 @@ get_mirna_target_net <- function(mirna) {
 ```{r}
 mir101 <- get_hmdd_causality("hsa-mir-101")
 
-mir101_net <- get_mirna_target_net("hsa-mir-101")
+mir101_net <- get_hmdd_net("hsa-mir-101")
 ```
 
