@@ -7,23 +7,50 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(polite)
-library(rvest)
 ```
 
-## Seeing if HMDD has any rate-limiting or scraping policy w/ { polite }
+## Scraping HMDD
+
+Refactor calls/url building that are common to both functions, get info from diseases too.
 
 ```{r}
-session <- bow("http://www.cuilab.cn/hmdd3app/causality/hsa-mir-101-1_a3/", force = TRUE)
-result <- scrape(session, query=list(t="semi-soft")) %>%
-  html_table()
+get_hmdd_causality <- function(mirna) {
+  
+  url <- sprintf("http://www.cuilab.cn/hmdd3app/causality/%s_a3/", mirna)
+  
+  result <- xml2::read_html(url) %>% 
+    rvest::html_node(xpath = '//*[@id="browsedownload"]') %>% 
+    rvest::html_attr("href")
+
+  info <- paste0("http://www.cuilab.cn", result) %>% 
+    readLines()
+  
+  table <- readr::read_tsv(info[2:length(info)]) %>% 
+    dplyr::mutate(miRNA = gsub("miRNA name:\t", "", info[1]))
+  
+}
 ```
 
 ```{r}
-session_net <- bow("http://www.cuilab.cn/hmdd3app/browse_net/Multiple%20Myeloma_n2/", force = TRUE)
+get_mirna_target_net <- function(mirna) {
 
-result_net <- scrape(session_net) %>% 
-  html_node(xpath = "/html/body/p/b/span[2]/a") %>% 
-  html_attr("href")
+  url <- sprintf("http://www.cuilab.cn/hmdd3app/browse_net/%s_n1/", mirna)
+  
+  result <- xml2::read_html(url) %>% 
+    rvest::html_node(xpath = '/html/body/p/b/span[2]/a') %>% 
+    rvest::html_attr("href")
+
+  info <- paste0("http://www.cuilab.cn", result) %>% 
+    readLines() %>% 
+    readr::read_tsv()
+  
+}
+```
+
+
+```{r}
+mir101 <- get_hmdd_causality("hsa-mir-101")
+
+mir101_net <- get_mirna_target_net("hsa-mir-101")
 ```
 
