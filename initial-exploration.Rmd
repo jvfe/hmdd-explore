@@ -16,9 +16,20 @@ Refactor calls/url building that are common to both functions, get info from dis
 
 ```{r}
 get_href <- function(url, obj_xpath) {
-  xml2::read_html(url) %>% 
-    rvest::html_node(xpath = obj_xpath) %>% 
-    rvest::html_attr("href")
+  
+  tryCatch(
+    {
+      message("Processing the request...")
+      xml2::read_html(url) %>% 
+        rvest::html_node(xpath = obj_xpath) %>% 
+        rvest::html_attr("href")
+    },
+    error=function(cond) {
+      message(paste("The URL does not seem to exist:", url))
+      return(NULL)
+    } 
+  )
+  
 }
 
 make_hmdd_url <- function(info_type, id, extra_id) {
@@ -27,9 +38,14 @@ make_hmdd_url <- function(info_type, id, extra_id) {
 ```
 
 ```{r}
-get_hmdd_causality <- function(mirna) {
+get_hmdd_causality <- function(entity) {
   
-  url <- make_hmdd_url("causality", mirna, "a3")
+  if (startsWith(entity, "hsa")) {
+   url <- make_hmdd_url("causality", entity, "a3") 
+  } else {
+    encoded_disease <- URLencode(tools::toTitleCase(entity))
+    url <- make_hmdd_url("causality", encoded_disease, "a4") 
+  }
 
   result <- get_href(url, '//*[@id="browsedownload"]')
 
@@ -37,15 +53,20 @@ get_hmdd_causality <- function(mirna) {
     readLines()
   
   table <- readr::read_tsv(info[2:length(info)]) %>% 
-    dplyr::mutate(miRNA = gsub("miRNA name:\t", "", info[1]))
+    dplyr::mutate(entity_name = gsub("miRNA name:\t|Disease name:\t", "", info[1]))
   
 }
 ```
 
 ```{r}
-get_hmdd_net <- function(mirna) {
+get_hmdd_net <- function(entity) {
   
-  url <- make_hmdd_url("browse_net", mirna, "n1")
+  if (startsWith(entity, "hsa")) {
+    url <- make_hmdd_url("browse_net", tolower(entity), "n1")
+  } else {
+    encoded_disease <- URLencode(tools::toTitleCase(entity))
+    url <- make_hmdd_url("browse_net", encoded_disease, "n2") 
+  }
   
   result <- get_href(url, '/html/body/p/b/span[2]/a')
 
@@ -57,9 +78,11 @@ get_hmdd_net <- function(mirna) {
 ```
 
 
-```{r}
-mir101 <- get_hmdd_causality("hsa-mir-101")
+```{r testing}
+sepsis <- get_hmdd_causality("sepsis")
+silicosis_net <- get_hmdd_net("silicosis")
 
-mir101_net <- get_hmdd_net("hsa-mir-101")
+hm101 <- get_hmdd_causality("hsa-mir-101")
+hm101_net <- get_hmdd_net("hsa-mir-101")
 ```
 
