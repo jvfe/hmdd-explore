@@ -39,7 +39,8 @@ get_hmdd_content <- function(url, obj_xpath) {
         readLines()
     },
     error = function(cond) {
-      message(paste("Couldn't find the required information!"))
+      message("Couldn't find the required information!")
+      message(paste("The original error message was:", cond))
       return(NULL)
     }
   )
