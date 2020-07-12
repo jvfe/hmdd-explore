@@ -207,10 +207,10 @@
     },
     "pillar": {
       "Package": "pillar",
-      "Version": "1.4.5",
+      "Version": "1.4.6",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "cac0feb2de7c97b2b520d929f3107a0c"
+      "Hash": "bdf26e55ccb7df3e49a490150277f002"
     },
     "pkgconfig": {
       "Package": "pkgconfig",
@@ -296,10 +296,10 @@
     },
     "tibble": {
       "Package": "tibble",
-      "Version": "3.0.2",
+      "Version": "3.0.3",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "fb0cdda0f19ae2e708d93fa7bb08ab3b"
+      "Hash": "08bd36bd34b20d4f7971d49e81deaab0"
     },
     "tidyselect": {
       "Package": "tidyselect",

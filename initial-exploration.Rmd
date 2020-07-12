@@ -15,21 +15,34 @@ library(magrittr)
 Refactor calls/url building that are common to both functions, get info from diseases too.
 
 ```{r}
-get_href <- function(url, obj_xpath) {
-  
+make_request <- function(url) {
   tryCatch(
     {
       message("Processing the request...")
-      xml2::read_html(url) %>% 
-        rvest::html_node(xpath = obj_xpath) %>% 
-        rvest::html_attr("href")
+      xml2::read_html(url)
     },
-    error=function(cond) {
+    error = function(cond) {
       message(paste("The URL does not seem to exist:", url))
       return(NULL)
-    } 
+    }
   )
-  
+}
+
+
+get_hmdd_content <- function(url, obj_xpath) {
+  tryCatch(
+    {
+      req <- make_request(url) %>%
+        rvest::html_node(xpath = obj_xpath) %>%
+        rvest::html_attr("href")
+      paste0("http://www.cuilab.cn", req) %>%
+        readLines()
+    },
+    error = function(cond) {
+      message(paste("Couldn't find the required information!"))
+      return(NULL)
+    }
+  )
 }
 
 make_hmdd_url <- function(info_type, id, extra_id) {
@@ -39,41 +52,31 @@ make_hmdd_url <- function(info_type, id, extra_id) {
 
 ```{r}
 get_hmdd_causality <- function(entity) {
-  
   if (startsWith(entity, "hsa")) {
-   url <- make_hmdd_url("causality", entity, "a3") 
+    url <- make_hmdd_url("causality", entity, "a3")
   } else {
     encoded_disease <- URLencode(tools::toTitleCase(entity))
-    url <- make_hmdd_url("causality", encoded_disease, "a4") 
+    url <- make_hmdd_url("causality", encoded_disease, "a4")
   }
 
-  result <- get_href(url, '//*[@id="browsedownload"]')
+  result <- get_hmdd_content(url, '//*[@id="browsedownload"]')
 
-  info <- paste0("http://www.cuilab.cn", result) %>% 
-    readLines()
-  
-  table <- readr::read_tsv(info[2:length(info)]) %>% 
-    dplyr::mutate(entity_name = gsub("miRNA name:\t|Disease name:\t", "", info[1]))
-  
+  table <- readr::read_tsv(result[2:length(result)]) %>%
+    dplyr::mutate(entity_name = gsub("miRNA name:\t|Disease name:\t", "", result[1]))
 }
 ```
 
 ```{r}
 get_hmdd_net <- function(entity) {
-  
   if (startsWith(entity, "hsa")) {
     url <- make_hmdd_url("browse_net", tolower(entity), "n1")
   } else {
     encoded_disease <- URLencode(tools::toTitleCase(entity))
-    url <- make_hmdd_url("browse_net", encoded_disease, "n2") 
+    url <- make_hmdd_url("browse_net", encoded_disease, "n2")
   }
-  
-  result <- get_href(url, '/html/body/p/b/span[2]/a')
 
-  info <- paste0("http://www.cuilab.cn", result) %>% 
-    readLines() %>% 
+  result <- get_hmdd_content(url, "/html/body/p/b/span[2]/a") %>%
     readr::read_tsv()
-  
 }
 ```
 
@@ -90,21 +93,18 @@ hm101_net <- get_hmdd_net("hsa-mir-101")
 
 ```{r}
 get_mirtar_disease <- function(disease) {
-  
   base <- "http://mirtarbase.cuhk.edu.cn/php/search.php?opt=disease_intermediate_mirna&disease_mirna="
-  
+
   url <- paste0(base, disease)
-  
-  result <- xml2::read_html(url)
-  
-  result %>% 
-    rvest::html_table() %>% 
-    '[['(1)
-    
+
+  result <- make_request(url)
+
+  result %>%
+    rvest::html_table() %>%
+    "[["(1)
 }
 ```
 
 ```{r testing-mirtar}
 carci <- get_mirtar_disease("Carcinoma")
 ```
-
